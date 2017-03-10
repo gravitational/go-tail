@@ -9,6 +9,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/docker/docker/pkg/filenotify"
 	"github.com/fsnotify/fsnotify"
 )
 
@@ -38,10 +39,23 @@ func (l *Line) Discarded() int {
 	return l.discarded
 }
 
+func (c *Config) newWatcher() (filenotify.FileWatcher, error) {
+	if c.Poll {
+		return filenotify.NewPollingWatcher(), nil
+	}
+	return filenotify.New()
+}
+
 type Config struct {
+	// Offset defines the position for tailing
 	Offset int64
+	// Whence defines the starting point for Offset: beginning/end/relative
 	Whence int
+	// Reopen continuously attempts to open a file if it's moved
+	// or deleted
 	Reopen bool
+	// Poll controls whether polling is used instead of inotify
+	Poll bool
 }
 
 type Follower struct {
@@ -52,7 +66,7 @@ type Follower struct {
 	err      error
 	config   Config
 	reader   *bufio.Reader
-	watcher  *fsnotify.Watcher
+	watcher  filenotify.FileWatcher
 	offset   int64
 	closeCh  chan struct{}
 }
@@ -101,7 +115,7 @@ func (t *Follower) follow() error {
 		errChan   = make(chan error)
 	)
 
-	t.watcher, err = fsnotify.NewWatcher()
+	t.watcher, err = t.config.newWatcher()
 	if err != nil {
 		return err
 	}
@@ -294,7 +308,7 @@ func (t *Follower) watchFileEvents(eventChan chan fsnotify.Event, errChan chan e
 
 	for {
 		select {
-		case evt, ok := <-t.watcher.Events:
+		case evt, ok := <-t.watcher.Events():
 			if !ok {
 				return
 			}
@@ -312,7 +326,7 @@ func (t *Follower) watchFileEvents(eventChan chan fsnotify.Event, errChan chan e
 			}
 
 		// die on a file watching error
-		case err, _ := <-t.watcher.Errors:
+		case err, _ := <-t.watcher.Errors():
 			errChan <- err
 			return
 		}
