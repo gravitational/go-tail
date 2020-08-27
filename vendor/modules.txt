@@ -9,9 +9,6 @@ github.com/docker/docker/pkg/filenotify
 # github.com/fsnotify/fsnotify v1.4.3-0.20161026203122-fd9ec7deca8b
 ## explicit
 github.com/fsnotify/fsnotify
-# github.com/papertrail/go-tail v0.0.0-20180509224916-973c153b0431
-## explicit
-github.com/papertrail/go-tail/follower
 # github.com/pmezard/go-difflib v1.0.0
 github.com/pmezard/go-difflib/difflib
 # github.com/spf13/pflag v0.0.0-20160906134334-6fd2ff4ff8df
